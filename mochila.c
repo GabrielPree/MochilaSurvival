@@ -58,28 +58,30 @@ void adicionarItem(Mochila *mochila, const char* nome, const char* tipo, int num
         printf("A mochila esta cheia!\n");
         return;
     }
+    strcpy(mochila->itens[mochila->quantidade].nome, nome);
+    strcpy(mochila->itens[mochila->quantidade].tipo, tipo);
+    // Adiciona a quantidade de itens na mochila
+    mochila->itens[mochila->quantidade].numero = numero;
+    mochila->quantidade++;
 
-    // Verifica se o item já existe
-    for (int i = 0; i < mochila->quantidade; i++) {
-        if (strcmp(mochila->itens[i].nome, nome) == 0) {
-            printf("O item \"%s\" já está na mochila! Não é possível adicioná-lo.\n", nome);
-            printf("\n");
-            return;
+     // Ordena os itens por nome (Bubble Sort simples)
+    for (int i = 0; i < mochila->quantidade - 1; i++) {
+        for (int j = i + 1; j < mochila->quantidade; j++) {
+            if (strcmp(mochila->itens[i].nome, mochila->itens[j].nome) > 0) {
+                Item temp = mochila->itens[i];
+                mochila->itens[i] = mochila->itens[j];
+                mochila->itens[j] = temp;
+            }
         }
     }
 
-    // Adiciona o item
-    strcpy(mochila->itens[mochila->quantidade].nome, nome);
-    strcpy(mochila->itens[mochila->quantidade].tipo, tipo);
-    // Adiciona a quantidade do item na mochila
-    mochila->itens[mochila->quantidade].numero = numero;
-    mochila->quantidade++;
     printf("Item \"%s\" (Tipo: %s, Quantidade: %d) adicionado com sucesso!\n", nome, tipo, numero);
     printf("\n");
 }
 
 // Função para remover item da mochila
 void removerItem(Mochila *mochila, const char* nome) {
+
     // A função percorre os itens em uso na lista (de 0 até quantidade)
     // Essa função retorna 0 se as strings forem idênticas. Se encontrar, guarda a posição (pos) e para o loop.
     int pos = -1;
@@ -113,34 +115,57 @@ void removerItem(Mochila *mochila, const char* nome) {
 // Função para listar os itens da mochila
 void listar(const Mochila *mochila) {
     if (mochila->quantidade == 0) {
-        printf("A mochila esta vazia! Não há itens para listar.\n");
-        printf("\n");
-        printf("Pressione Enter para continuar...");
-        getchar();
+        printf("A mochila esta vazia!\n");
         return;
     }
-    printf("=============== ITENS NA MOCHILA (%d/10) =============\n", mochila->quantidade);
-    printf("=====================================================\n");
+    printf("==================== ITENS NA MOCHILA (%d/10) ===================\n", mochila->quantidade);
+    printf("================================================================\n");
     for (int i = 0; i < mochila->quantidade; i++) {
-        printf("%d. Nome: %s | Tipo: %s | Quantidade: %d\n", i + 1, mochila->itens[i].nome, mochila->itens[i].tipo, mochila->itens[i].numero);
+        printf("%d. Nome: %s          | Tipo: %s          | Quantidade: %d\n", i + 1, mochila->itens[i].nome, mochila->itens[i].tipo, mochila->itens[i].numero);
     }
-    printf("=====================================================\n");
+    printf("================================================================\n");
     printf("\n");
     printf("Pressione Enter para continuar...");
     getchar();
 }
 
-// Função para buscar um item na mochila
+
+
 void buscarItem(const Mochila *mochila, const char* nome) {
-    int i;
-    for (i = 0; i < mochila->quantidade; i++) {
-        if (strcmp(mochila->itens[i].nome, nome) == 0) {
-            printf("Item encontrado: %s (Tipo: %s, Quantidade: %d)\n", mochila->itens[i].nome, mochila->itens[i].tipo, mochila->itens[i].numero);
+    int inicio = 0;
+    int fim = mochila->quantidade - 1;
+    int meio;
+
+    // O laço continua enquanto a sub-lista for válida (início não ultrapassou o fim).
+    while (inicio <= fim) {
+        // Calcula o índice do meio.
+        // Usar inicio + (fim - inicio) / 2 evita overflow para listas muito grandes.
+        meio = inicio + (fim - inicio) / 2;
+
+        // Compara a string do meio com o item procurado.
+        int comparacao = strcmp(mochila->itens[meio].nome, nome);
+
+        if (comparacao == 0) { // Encontrou!
+            printf("Item encontrado: %s (Tipo: %s, Quantidade: %d)\n", mochila->itens[meio].nome, mochila->itens[meio].tipo, mochila->itens[meio].numero);
             return;
         }
+        else if (comparacao > 0) {
+            // O item do meio vem DEPOIS do item procurado
+            // Portanto o item só pode estar na metade esquerda da lista.
+            // Descartamos a metade direita ajustando o Fim
+            fim = meio - 1;
+        }
+                else { // comparacao < 0
+            // O item do meio vem ANTES do item procurado
+            // Portanto, o item só pode estar na metade direita.
+            // Descartamos a metade esquerda, ajustando o 'inicio'.
+            inicio = meio + 1;
+        }
     }
+    // Se o laço while terminar, significa que o inicio ultrapassou o fim, o espaço de busca se esgotou e o item n foi encontrado
     printf("Item \"%s\" nao encontrado na mochila!\n", nome);
 }
+
 
 // --- Limpa o buffer do teclado ---
 void limpaBufferEntrada() {
@@ -155,9 +180,9 @@ void menu(Mochila *mochila) {
     int numero;
 
     do {
-        printf("\n======================\n");
-        printf("== MOCHILA SURVIVAL ==\n");
-        printf("======================\n");
+        printf("\n================================================================\n");
+        printf("======================= MOCHILA SURVIVAL =======================\n");
+        printf("================================================================\n");
         printf("Itens na mochila: %d\n", mochila->quantidade);
         printf("\n1 - Adicionar Item\n");
         printf("2 - Remover Item\n");
@@ -187,14 +212,6 @@ void menu(Mochila *mochila) {
                 listar(mochila);
                 break;
             case 2:
-                // Verifica se a mochila está vazia
-                if (mochila->quantidade == 0) {
-                printf("A mochila está vazia! Não há itens para remover.\n");
-                printf("\n");
-                printf("Pressione Enter para continuar...");
-                getchar();
-                break;
-                }       
                 printf("Digite o nome do item a ser removido: ");
                 scanf("%s", nome);
                 limpaBufferEntrada();
@@ -205,21 +222,13 @@ void menu(Mochila *mochila) {
                 listar(mochila);
                 break;
             case 4:
-                // Verifica se a mochila está vazia
-                if (mochila->quantidade == 0) {
-                printf("A mochila está vazia! Não há itens para buscar.\n");
-                printf("\n");
-                printf("Pressione Enter para continuar...");
-                getchar();
-                break;
-                }
                 printf("Digite o nome do item a ser buscado: ");
                 scanf("%s", nome);
                 limpaBufferEntrada();
+                printf("\n");
                 buscarItem(mochila, nome);
                 printf("\n");
-                printf("Pressione Enter para continuar...");
-                getchar();
+                listar(mochila);
                 break;
             case 0:
                 printf("Saindo do programa...\n");
